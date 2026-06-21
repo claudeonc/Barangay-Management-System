@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Resident {
+  ResidentID   Int       @id @default(autoincrement())
+  HouseholdID  Int?      
+  Household    Household? @relation("HouseholdResidents", fields: [HouseholdID], references: [HouseholdID])
+  FirstName    String
+  LastName     String
+  Birthdate    DateTime  @db.Date
+  Gender       String
+  CivilStatus  String
+  Occupation   String?
+  ContactNo    String?
+
+  HeadOfHousehold Household[] @relation("HouseholdHead")
+  Personnel       Personnel[]
+  Documents       Document[]
+}
+
+model Household {
+  HouseholdID   Int        @id @default(autoincrement())
+  HouseNo       String
+  Street        String
+  SubVillage    String
+  HeadOfFamily  Int
+  HeadResident  Resident   @relation("HouseholdHead", fields: [HeadOfFamily], references: [ResidentID], onDelete: Restrict)
+
+  Residents     Resident[] @relation("HouseholdResidents")
+}
+
+model Personnel {
+  PersonnelID    Int        @id @default(autoincrement())
+  ResidentID     Int
+  Resident       Resident   @relation(fields: [ResidentID], references: [ResidentID], onDelete: Cascade)
+  Position       String
+  EmploymentType String
+  TermStart      DateTime?  @db.Date
+  TermEnd        DateTime?  @db.Date
+
+  Users          User[]
+  DocumentsIssued Document[] @relation("DocumentIssuer")
+}
+
+model Document {
+  DocumentID   Int        @id @default(autoincrement())
+  ResidentID   Int
+  Resident     Resident   @relation(fields: [ResidentID], references: [ResidentID], onDelete: Cascade)
+  DocumentType String
+  DateIssued   DateTime
+  IssuedBy     Int
+  Issuer       Personnel  @relation("DocumentIssuer", fields: [IssuedBy], references: [PersonnelID], onDelete: Restrict)
+  Purpose      String
+  Status       String
+}
+
+model User {
+  UserID       Int        @id @default(autoincrement())
+  Username     String     @unique
+  Password     String
+  Role         String
+  PersonnelID  Int?
+  Personnel    Personnel? @relation(fields: [PersonnelID], references: [PersonnelID], onDelete: SetNull)
+
+  ActivityLogs ActivityLog[]
+}
+
+model ActivityLog {
+  LogID      Int      @id @default(autoincrement())
+  UserID     Int
+  User       User     @relation(fields: [UserID], references: [UserID], onDelete: Cascade)
+  Action     String
+  Timestamp  DateTime @default(now())
+}
